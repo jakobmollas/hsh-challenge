@@ -1,0 +1,17 @@
+[
+  {
+    "Name": "Fenrir",
+    "Tech": "Power",
+    "AttacksPerSecond": 6.9
+  },
+  {
+    "Name": "Constitutional Arms Liberty",
+    "Tech": "Power",
+    "AttacksPerSecond": 3.75
+  },
+  {
+    "Name": "Genjiroh",
+    "Tech": "Smart",
+    "AttacksPerSecond": 4.8
+  }
+]
