@@ -13,5 +13,10 @@
     "Name": "Genjiroh",
     "Tech": "Smart",
     "AttacksPerSecond": 4.8
-  }
+  },
+	{
+		"Name": "Tsunami Nekomata",
+		"Tech": "Tech",
+		"AttacksPerSecond": 0.93
+	}
 ]
