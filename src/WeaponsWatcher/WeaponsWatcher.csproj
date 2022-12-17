@@ -11,14 +11,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Remove="weapons.json" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<Content Include="app.ico" />
 		<Content Include="weapons.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<InternalsVisibleTo Include="WeaponsWatcher.Tests" />
+		<InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
 	</ItemGroup>
 
 </Project>
