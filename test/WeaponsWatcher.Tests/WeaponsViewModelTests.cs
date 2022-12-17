@@ -3,7 +3,7 @@ using Xunit;
 
 namespace WeaponsWatcher.Tests;
 
-public class WeaponsViewModelTests
+public class WeaponsFileMonitorTests
 {
 	[Fact]
 	public void Update_Clears_And_Updates_Collection()

@@ -21,8 +21,8 @@ public partial class MainWindow
 
 		Closed += MainWindow_Closed;
 
-		var pathToMonitor = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename);
-		_monitor = new WeaponsFileMonitor(pathToMonitor);
+		string pathToMonitor = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename);
+		_monitor = new WeaponsFileMonitor(pathToMonitor, TimeSpan.FromMilliseconds(250));
 		_monitor.WeaponsUpdated += _monitor_WeaponsUpdated;
 	}
 

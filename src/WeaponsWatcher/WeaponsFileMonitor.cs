@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.CodeDom;
+using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -21,22 +22,27 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	public event EventHandler<IEnumerable<Weapon>>? WeaponsUpdated;
 
 	/// <summary>
-	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/> for changes (using LastWriteTimeUtc).
-	/// When the file is modified, the <see cref="WeaponsUpdated"/> event will be fired.
+	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
+	/// for changes (using LastWriteTimeUtc) with a delay of <paramref name="interval"/>.
+	/// When the file is modified, the <see cref="WeaponsUpdated"/> event will be fired with included deserialized file contents.
+	/// Any errors will be suppressed and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
 	/// <remarks>
 	/// Cancellation/dispose could result in <see cref="OperationCanceledException"/>.
 	/// </remarks>
-	public WeaponsFileMonitor(string pathToMonitor)
+	public WeaponsFileMonitor(string pathToMonitor, TimeSpan interval)
 	{
-		if (string.IsNullOrEmpty(pathToMonitor))
-			throw new ArgumentException("Value cannot be null or empty.", nameof(pathToMonitor));
+		if (string.IsNullOrWhiteSpace(pathToMonitor))
+			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
+
+		if (interval <= TimeSpan.Zero)
+			throw new ArgumentOutOfRangeException(nameof(interval), $"{nameof(interval)} must be greater than 0.")
 
 		_pathToMonitor = pathToMonitor;
 
 		_monitorTask = Task.Run(async () => await RunAsync(_cts.Token));
-		_timer = new PeriodicTimer(TimeSpan.FromMilliseconds(100));
+		_timer = new PeriodicTimer(interval);
 	}
 
 	public async ValueTask DisposeAsync()
@@ -83,7 +89,8 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 		}
 		catch (Exception)
 		{
-			// Ignore for now - in a real app we would probably like to log this, depending on what is expected.
+			// Ignore for now - in a real app we would probably like to log this
+			// and maybe show error information in the UI depending on what is expected.
 		}
 	}
 
@@ -93,20 +100,9 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// <returns>An empty array in case of any errors (file-related errors are mainly expected here).</returns>
 	private async Task<IReadOnlyList<Weapon>> ReadWeaponsAsync(CancellationToken ct)
 	{
-		try
-		{
-			if (!File.Exists(_pathToMonitor))
-				return Array.Empty<Weapon>();
+		await using var readStream = File.OpenRead(_pathToMonitor);
+		var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
 
-			await using var readStream = File.OpenRead(_pathToMonitor);
-			var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
-
-			return weapons != null ? weapons : Array.Empty<Weapon>();
-		}
-		catch (Exception)
-		{
-			// In a real application we would probably want to log this, but in this example we simply clear out the data/UI.
-			return Array.Empty<Weapon>();
-		}
+		return weapons != null ? weapons : Array.Empty<Weapon>();
 	}
 }
