@@ -49,7 +49,9 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	{
 		_cts.Cancel();
 		await _monitorTask;
+
 		_timer.Dispose();
+		_cts.Dispose();
 	}
 
 	private async Task RunAsync(CancellationToken ct)
