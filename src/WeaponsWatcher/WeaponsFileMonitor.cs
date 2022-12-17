@@ -23,13 +23,10 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// <summary>
 	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
 	/// for changes (using LastWriteTimeUtc) with a delay of <paramref name="interval"/>.
-	/// When the file is modified, the <see cref="WeaponsUpdated"/> event will be fired with included deserialized file contents.
-	/// Any errors will be suppressed and will not result in a change event. 
+	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with included file contents.
+	/// Any read errors will caught and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
-	/// <remarks>
-	/// Cancellation/dispose could result in <see cref="OperationCanceledException"/>.
-	/// </remarks>
 	public WeaponsFileMonitor(string pathToMonitor, TimeSpan interval)
 	{
 		if (string.IsNullOrWhiteSpace(pathToMonitor))
@@ -44,6 +41,10 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 		_timer = new PeriodicTimer(interval);
 	}
 
+	/// <summary>
+	/// Terminate monitoring and clean up.
+	/// </summary>
+	/// <exception cref="OperationCanceledException"> may be thrown here (depends on timing).</exception>
 	public async ValueTask DisposeAsync()
 	{
 		_cts.Cancel();
@@ -68,8 +69,8 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	{
 		try
 		{
-			// No listeners or nothing to read? Well, no point in working hard in that case.
-			// By checking for subscribers we also handle an edge case where a consumer creates a monitor
+			// No listeners or nothing to read? No point in working hard in that case.
+			// By checking for subscribers we also handle an edge case where a (single) consumer creates a monitor
 			// that starts and processes a file BEFORE the consumer has time to subscribe to the change event,
 			// which would lead to a lost initial update.
 			if (WeaponsUpdated == null || !File.Exists(_pathToMonitor))
@@ -81,23 +82,20 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 			_lastWriteTime = writeTime;
 
-			var weapons = await ReadWeaponsAsync(ct);
+			var weapons = await ReadWeaponsListAsync(_pathToMonitor, ct);
+
 			WeaponsUpdated?.Invoke(this, weapons);
 		}
 		catch (Exception)
 		{
-			// Ignore for now - in a real app we would probably like to log this
+			// Ignore for now - in a real app we may want to log this
 			// and maybe show error information in the UI depending on what is expected.
 		}
 	}
 
-	/// <summary>
-	/// Do a single read, handle errors, does not catch <see cref="OperationCanceledException"/>.
-	/// </summary>
-	/// <returns>An empty array in case of any errors (file-related errors are mainly expected here).</returns>
-	private async Task<IReadOnlyList<Weapon>> ReadWeaponsAsync(CancellationToken ct)
+	private static async Task<IReadOnlyList<Weapon>> ReadWeaponsListAsync(string path, CancellationToken ct)
 	{
-		await using var readStream = File.OpenRead(_pathToMonitor);
+		await using var readStream = File.OpenRead(path);
 		var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
 
 		return weapons != null ? weapons : Array.Empty<Weapon>();
