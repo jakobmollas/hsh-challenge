@@ -48,8 +48,6 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	public async ValueTask DisposeAsync()
 	{
 		_cts.Cancel();
-
-		// This could 
 		await _monitorTask;
 	}
 
