@@ -37,7 +37,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
 
 		if (interval <= TimeSpan.Zero)
-			throw new ArgumentOutOfRangeException(nameof(interval), $"{nameof(interval)} must be greater than 0.")
+			throw new ArgumentOutOfRangeException(nameof(interval), $"{nameof(interval)} must be greater than 0.");
 
 		_pathToMonitor = pathToMonitor;
 
