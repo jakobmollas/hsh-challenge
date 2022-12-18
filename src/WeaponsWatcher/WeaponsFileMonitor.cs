@@ -1,7 +1,6 @@
 ﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
 
 namespace WeaponsWatcher;
 
@@ -39,22 +38,29 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 		_pathToMonitor = pathToMonitor;
 
 		_monitorTask = Task.Run(async () => await RunAsync(_cts.Token));
-		_timer = new PeriodicTimer(interval);
+		_timer = new PeriodicTimer(interval); 
 	}
 
 	/// <summary>
 	/// Terminate monitoring and clean up.
 	/// </summary>
-	/// <exception cref="OperationCanceledException"> may be thrown here (depends on timing).</exception>
+	/// <remarks>
+	/// Disposal should not throw exception unless there are some serious unexpected errors (bugs),
+	/// meaning calling code do not need to catch exceptions, including <see cref="OperationCanceledException"/>.
+	/// </remarks>
 	public async ValueTask DisposeAsync()
 	{
 		try
 		{
 			_cts.Cancel();
+
+			// If the task faulted for some unexpected reason, this will ensure any exceptions are re-thrown.
+			// We do this to prevent any unexpected exceptions from being hidden.
 			await _monitorTask;
 		}
 		finally
 		{
+			// Ensure we clean up no matter what
 			_timer.Dispose();
 			_cts.Dispose();
 		}
@@ -62,15 +68,22 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 	private async Task RunAsync(CancellationToken ct)
 	{
-		while (!ct.IsCancellationRequested)
+		try
 		{
-			// Dispose on _timer or cancel on token _should_ not result in an OperationCanceledException
-			// based on documentation but it is not super clear. Expect an exception in any case.
-			bool result = await _timer.WaitForNextTickAsync(ct);
-			if (!result)
-				return;
+			while (!ct.IsCancellationRequested)
+			{
+				// Disposing _timer or cancelling token _should_ not result in an OperationCanceledException being thrown
+				// based on documentation but it is not super clear. Expect an exception in any case.
+				bool result = await _timer.WaitForNextTickAsync(ct);
+				if (!result)
+					return;
 
-			await CheckForUpdatesAsync(ct);
+				await CheckForUpdatesAsync(ct);
+			}
+		}
+		catch (OperationCanceledException)
+		{
+			// Ok
 		}
 	}
 

@@ -21,30 +21,17 @@ public partial class MainWindow
 
 		string pathToMonitor = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename);
 		_monitor = new WeaponsFileMonitor(pathToMonitor, TimeSpan.FromMilliseconds(250));
-		_monitor.WeaponsUpdated += _monitor_WeaponsUpdated;
+		_monitor.WeaponsUpdated += FileMonitor_WeaponsUpdated;
 
 		Closed += MainWindow_Closed;
 	}
 
 	private async void MainWindow_Closed(object? sender, EventArgs e)
 	{
-		try
-		{
-			// I suspect there are better ways to do async shutdown
-			await _monitor.DisposeAsync();
-		}
-		catch (OperationCanceledException)
-		{
-			// Ok
-		}
-		catch (Exception)
-		{
-			// This should be logged so we can fix any problems
-			// but at this point there is not much to do really.
-		}
+		await _monitor.DisposeAsync();
 	}
 
-	private void _monitor_WeaponsUpdated(object? sender, IEnumerable<Weapon> weapons)
+	private void FileMonitor_WeaponsUpdated(object? sender, IEnumerable<Weapon> weapons)
 	{
 		// There is an obvious corner case here, what if the change event is triggered faster than the consuming code can process them?
 		// We could flood the UI with updates in that case.
