@@ -1,6 +1,7 @@
 ﻿using System.IO;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 
 namespace WeaponsWatcher;
 
@@ -47,11 +48,16 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// <exception cref="OperationCanceledException"> may be thrown here (depends on timing).</exception>
 	public async ValueTask DisposeAsync()
 	{
-		_cts.Cancel();
-		await _monitorTask;
-
-		_timer.Dispose();
-		_cts.Dispose();
+		try
+		{
+			_cts.Cancel();
+			await _monitorTask;
+		}
+		finally
+		{
+			_timer.Dispose();
+			_cts.Dispose();
+		}
 	}
 
 	private async Task RunAsync(CancellationToken ct)
