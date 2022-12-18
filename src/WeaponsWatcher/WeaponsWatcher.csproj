@@ -11,6 +11,11 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.1.1" />
+		<PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.1.1" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="app.ico" />
 		<Content Include="weapons.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

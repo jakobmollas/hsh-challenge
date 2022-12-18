@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -14,6 +15,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 	private readonly CancellationTokenSource _cts = new();
 	private readonly Task _monitorTask;
+	private readonly IFileSystem _fileSystem;
 	private readonly string _pathToMonitor;
 	private readonly PeriodicTimer _timer;
 	private DateTime _lastWriteTime;
@@ -27,14 +29,16 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// Any read errors will caught and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
-	public WeaponsFileMonitor(string pathToMonitor, TimeSpan interval)
+	public WeaponsFileMonitor(IFileSystem fileSystem, string pathToMonitor, TimeSpan interval)
 	{
+		_fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+
 		if (string.IsNullOrWhiteSpace(pathToMonitor))
 			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
 
 		if (interval <= TimeSpan.Zero)
 			throw new ArgumentOutOfRangeException(nameof(interval), $"{nameof(interval)} must be greater than 0.");
-
+		
 		_pathToMonitor = pathToMonitor;
 
 		_monitorTask = Task.Run(async () => await RunAsync(_cts.Token));
@@ -95,7 +99,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 			// By checking for subscribers we also handle an edge case where a (single) consumer creates a monitor
 			// that starts and processes a file BEFORE the consumer has time to subscribe to the change event,
 			// which would lead to a lost initial update.
-			if (WeaponsUpdated == null || !File.Exists(_pathToMonitor))
+			if (WeaponsUpdated == null || !_fileSystem.File.Exists(_pathToMonitor))
 				return;
 
 			var writeTime = File.GetLastWriteTimeUtc(_pathToMonitor);
@@ -104,7 +108,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 			_lastWriteTime = writeTime;
 
-			var weapons = await ReadWeaponsListAsync(_pathToMonitor, ct);
+			var weapons = await ReadWeaponsListAsync(_fileSystem, _pathToMonitor, ct);
 
 			WeaponsUpdated?.Invoke(this, weapons);
 		}
@@ -115,9 +119,9 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 		}
 	}
 
-	private static async Task<IReadOnlyList<Weapon>> ReadWeaponsListAsync(string path, CancellationToken ct)
+	private static async Task<IReadOnlyList<Weapon>> ReadWeaponsListAsync(IFileSystem fileSystem, string path, CancellationToken ct)
 	{
-		await using var readStream = File.OpenRead(path);
+		await using var readStream = fileSystem.File.OpenRead(path);
 		var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
 
 		return weapons != null ? weapons : Array.Empty<Weapon>();
