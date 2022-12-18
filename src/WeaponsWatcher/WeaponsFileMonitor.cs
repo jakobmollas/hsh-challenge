@@ -58,8 +58,8 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	{
 		while (!ct.IsCancellationRequested)
 		{
-			// Dispose/token cancel does not result in an OperationCanceledException
-			// so we do not need to do a try/catch
+			// Dispose on _timer or cancel on token _should_ not result in an OperationCanceledException
+			// based on documentation but it is not super clear. Expect an exception in any case.
 			bool result = await _timer.WaitForNextTickAsync(ct);
 			if (!result)
 				return;
