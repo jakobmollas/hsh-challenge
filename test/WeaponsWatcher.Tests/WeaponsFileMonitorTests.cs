@@ -1,66 +1,112 @@
 ﻿using System.IO.Abstractions.TestingHelpers;
+using Moq;
+using WeaponsWatcher.Tests.TestSupport;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace WeaponsWatcher.Tests;
 
-public class WeaponsViewModelTests
+public sealed class WeaponsViewModelTests : IDisposable
 {
+	// Ensure we terminate any uncompleted operations after a while
+	
+	private readonly CancellationTokenSource _cts;
+	private readonly MockFileSystem _fileSystem;
+	private readonly MockTimer _timer;
+
+	public WeaponsViewModelTests(ITestOutputHelper outputHelper)
+	{
+		_cts = new(TimeSpan.FromSeconds(3));
+		_fileSystem = new(new Dictionary<string, MockFileData>());
+		_timer = new(new TestLogger(outputHelper));
+	}
+
 	[Fact]
 	public void Monitor_With_Bad_Params_Throws()
 	{
 		var fileSystem = new MockFileSystem();
+		var timer = Mock.Of<IPeriodicTimer>();
 
-		Assert.Throws<ArgumentNullException>("fileSystem", () => new WeaponsFileMonitor(null!, "test.txt", TimeSpan.Zero));
+		Assert.Throws<ArgumentNullException>("fileSystem", () => new WeaponsFileMonitor(null!, "test.txt", timer));
 
-		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, null!, TimeSpan.Zero));
-		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, "", TimeSpan.Zero));
-		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, "   ", TimeSpan.Zero));
+		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, null!, timer));
+		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, "", timer));
+		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(fileSystem, "   ", timer));
 
-		Assert.Throws<ArgumentOutOfRangeException>("interval", () => new WeaponsFileMonitor(fileSystem, "test", TimeSpan.Zero));
-		Assert.Throws<ArgumentOutOfRangeException>("interval", () => new WeaponsFileMonitor(fileSystem, "test", TimeSpan.FromSeconds(-1)));
+		Assert.Throws<ArgumentNullException>("timer", () => new WeaponsFileMonitor(fileSystem, "test", null!));
 	}
 
 	[Fact]
-	public async Task Monitor_With_Bad_File_Contents_Does_Not_Fire_Event()
+	public async Task Valid_Data_Is_Read_And_Passed_Via_Event()
 	{
 		// Arrange
-		var fileSystem = new MockFileSystem(new Dictionary<string, MockFileData>());
-		fileSystem.AddFile(@"c:\weapons.json", new MockFileData(TestData.WeaponsJson1));
+		_fileSystem.AddFile(@"c:\weapons.json", new MockFileData(WeaponsTestData.Json1) { LastWriteTime = DateTime.UtcNow });
+
+		await using var monitor = new WeaponsFileMonitor(_fileSystem, @"c:\weapons.json", _timer);
 
 		var updatedWeapons = new List<Weapon>();
-
-		var monitor = new WeaponsFileMonitor(fileSystem, @"c:\weapons.json", TimeSpan.FromMilliseconds(1));
 		monitor.WeaponsUpdated += (_, weapons) => updatedWeapons = weapons.ToList();
 
-		// Todo: Fix this - avoid relying on timings
 		// Act
-		await Task.Delay(100);
+		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
 
 		// Assert
-		Assert.Equal(TestData.WeaponsList1, updatedWeapons);
+		Assert.Equal(WeaponsTestData.ExpectedWeapons1, updatedWeapons);
 	}
-}
 
-public static class TestData
-{
-	public static string WeaponsJson1 = @"
-[
+	[Fact]
+	public async Task Invalid_File_Content_Is_Ignored()
 	{
-		""Name"": ""Fenrir"",
-		""Tech"": ""Power"",
-		""AttacksPerSecond"": 6.9
-	},
-	{
-		""Name"": ""Genjiroh"",
-		""Tech"": ""Smart"",
-		""AttacksPerSecond"": 4.8
+		// Arrange
+		_fileSystem.AddFile(@"c:\weapons.json", new MockFileData("{") { LastWriteTime = DateTime.UtcNow });
+
+		await using var monitor = new WeaponsFileMonitor(_fileSystem, @"c:\weapons.json", _timer);
+
+		bool eventFired = false;
+		monitor.WeaponsUpdated += (_, _) => eventFired = true;
+
+		// Act
+		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
+
+		// Assert
+		Assert.False(eventFired);
 	}
-]
-";
 
-	public static IEnumerable<Weapon> WeaponsList1 = new List<Weapon>
+	[Fact]
+	public async Task Updated_File_Is_Processed()
 	{
-		new("Fenrir", TechType.Power, 6.9),
-		new("Genjiroh", TechType.Smart, 4.8)
-	};
+		// Arrange
+		var file = new MockFileData(WeaponsTestData.Json1) { LastWriteTime = DateTime.UtcNow };
+		_fileSystem.AddFile(@"c:\weapons.json", file);
+
+		await using var monitor = new WeaponsFileMonitor(_fileSystem, @"c:\weapons.json", _timer);
+
+		int eventCount = 0;
+		var updatedWeapons = new List<Weapon>();
+		monitor.WeaponsUpdated += (_, weapons) =>
+		{
+			updatedWeapons = weapons.ToList();
+			eventCount++;
+		};
+
+		// Act - initial read
+		await _timer.ReleaseNextTickAndWaitConsumerToProcessTickAsync(_cts.Token);
+		await _timer.WaitForConsumerToWaitForNextTickAsync(_cts.Token);
+
+		// Update file
+		file.TextContents = WeaponsTestData.Json2;
+		file.LastWriteTime = DateTime.UtcNow.AddSeconds(1);
+
+		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
+
+		// Assert
+		Assert.Equal(2, eventCount);
+		Assert.Equal(WeaponsTestData.ExpectedWeapons2, updatedWeapons);
+	}
+
+	public void Dispose()
+	{
+		_timer.Dispose();
+		_cts.Dispose();
+	}
 }

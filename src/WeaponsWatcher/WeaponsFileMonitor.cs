@@ -17,32 +17,30 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	private readonly Task _monitorTask;
 	private readonly IFileSystem _fileSystem;
 	private readonly string _pathToMonitor;
-	private readonly PeriodicTimer _timer;
+	private readonly IPeriodicTimer _timer;
 	private DateTime _lastWriteTime;
 
 	public event EventHandler<IEnumerable<Weapon>>? WeaponsUpdated;
 
 	/// <summary>
 	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
-	/// for changes (using LastWriteTimeUtc) with a delay of <paramref name="interval"/>.
+	/// for changes (using LastWriteTimeUtc) with an interval controlled by <paramref name="timer"/>.
 	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with included file contents.
 	/// Any read errors will caught and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
-	public WeaponsFileMonitor(IFileSystem fileSystem, string pathToMonitor, TimeSpan interval)
+	public WeaponsFileMonitor(IFileSystem fileSystem, string pathToMonitor, IPeriodicTimer timer)
 	{
 		_fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
 
 		if (string.IsNullOrWhiteSpace(pathToMonitor))
 			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
 
-		if (interval <= TimeSpan.Zero)
-			throw new ArgumentOutOfRangeException(nameof(interval), $"{nameof(interval)} must be greater than 0.");
-		
+		_timer = timer ?? throw new ArgumentNullException(nameof(timer));
+
 		_pathToMonitor = pathToMonitor;
 
 		_monitorTask = Task.Run(async () => await RunAsync(_cts.Token));
-		_timer = new PeriodicTimer(interval); 
 	}
 
 	/// <summary>
@@ -102,7 +100,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 			if (WeaponsUpdated == null || !_fileSystem.File.Exists(_pathToMonitor))
 				return;
 
-			var writeTime = File.GetLastWriteTimeUtc(_pathToMonitor);
+			var writeTime = _fileSystem.File.GetLastWriteTimeUtc(_pathToMonitor);
 			if (writeTime == _lastWriteTime)
 				return;
 

@@ -21,7 +21,7 @@ public partial class MainWindow
 		InitializeComponent();
 
 		string pathToMonitor = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename);
-		_monitor = new WeaponsFileMonitor(new FileSystem(), pathToMonitor, TimeSpan.FromMilliseconds(250));
+		_monitor = new WeaponsFileMonitor(new FileSystem(), pathToMonitor, new PeriodicTimer(TimeSpan.FromMilliseconds(250)));
 		_monitor.WeaponsUpdated += FileMonitor_WeaponsUpdated;
 
 		Closed += MainWindow_Closed;
