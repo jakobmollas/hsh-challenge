@@ -21,7 +21,7 @@ internal sealed class MockTimer : IPeriodicTimer
 		await _nextTickSemaphore.WaitAsync(cancellationToken);
 		_logger.Log("Consumer is processing tick...");
 
-		// Handle initial await where test code have not yet awaited the initial consumer tick await
+		// Handle initial await where test code have not yet awaited the initial consumer tick (await)
 		if (_tickAwaitedSemaphore.CurrentCount > 0)
 		{
 			_logger.Log($"Consuming initial {nameof(_tickAwaitedSemaphore)}.");
@@ -39,7 +39,7 @@ internal sealed class MockTimer : IPeriodicTimer
 		await WaitForConsumerToWaitForNextTickAsync(cancellationToken);
 	}
 
-	internal async ValueTask ReleaseNextTickAndWaitConsumerToProcessTickAsync(CancellationToken cancellationToken)
+	private async ValueTask ReleaseNextTickAndWaitConsumerToProcessTickAsync(CancellationToken cancellationToken)
 	{
 		var consumptionTask = _tickConsumedSemaphore.WaitAsync(cancellationToken);
 
@@ -52,7 +52,7 @@ internal sealed class MockTimer : IPeriodicTimer
 		_logger.Log($"Finished waiting for {nameof(WaitForNextTickAsync)} consumption.");
 	}
 
-	internal async ValueTask WaitForConsumerToWaitForNextTickAsync(CancellationToken cancellationToken)
+	private async ValueTask WaitForConsumerToWaitForNextTickAsync(CancellationToken cancellationToken)
 	{
 		_logger.Log($"Waiting for consumer to await next {nameof(WaitForNextTickAsync)}.");
 		await _tickAwaitedSemaphore.WaitAsync(cancellationToken);

@@ -1,10 +1,11 @@
-﻿using System.IO;
-using System.IO.Abstractions;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Windows;
 
 namespace WeaponsWatcher;
 
 // ReSharper disable once UnusedMember.Global - used by the framework indirectly
+[ExcludeFromCodeCoverage]
 public partial class MainWindow
 {
 	private const string Filename = "weapons.json";
@@ -21,7 +22,7 @@ public partial class MainWindow
 		InitializeComponent();
 
 		string pathToMonitor = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, Filename);
-		_monitor = new WeaponsFileMonitor(new FileSystem(), pathToMonitor, new PeriodicTimer(TimeSpan.FromMilliseconds(250)));
+		_monitor = new WeaponsFileMonitor(pathToMonitor, TimeSpan.FromMilliseconds(250));
 		_monitor.WeaponsUpdated += FileMonitor_WeaponsUpdated;
 
 		Closed += MainWindow_Closed;

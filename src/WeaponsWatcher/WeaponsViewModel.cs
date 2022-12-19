@@ -8,10 +8,11 @@ public sealed class WeaponsViewModel
 
 	public void UpdateWeapons(IEnumerable<Weapon> weapons)
 	{
-		// This can definitely be improved - we do a brute-force update.
-		// Instead we could to a diff update and also avoid updating if not needed.
-		// Also - there is probably a way to temporary disable binding/updates,
-		// do updates, enable again (to avoid multiple update events in the UI) but I cannot figure that out.
+		// This can be improved - we do a brute-force update currently.
+		// Instead we could do a diff update and avoid updating if no data actually changed.
+		// Also - there is probably a way to temporary disable binding/updates, process updates,
+		// enable again (to avoid multiple update events in the UI) and trigger event if something actually changed.
+		// I cannot figure out how to do that in WPF though.
 		ClearWeapons();
 
 		foreach (var weapon in weapons)

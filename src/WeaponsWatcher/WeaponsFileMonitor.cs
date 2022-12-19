@@ -1,5 +1,4 @@
-﻿using System.IO;
-using System.IO.Abstractions;
+﻿using System.IO.Abstractions;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
@@ -8,6 +7,14 @@ namespace WeaponsWatcher;
 // A different approach to using a PeriodicTimer (which is async) could be to use Dispatcher.BeginInvoke and run short diff checks on the target file.
 // That would simplify the solution somewhat (no need to marshall calls to the UI thread, no need for separate threads) but it could also remove some separation of concerns.
 // I am also not sure how to schedule an update to not run immediately, but in x milliseconds or similar.
+
+// We could also design the class to not use IDisposable if that would be a better fit for the consumer
+// by taking a taking a cancellation token in the constructor (not recommended),
+// or by redesigning the class to have an explicit "run" method that takes a CancellationToken
+// and returns a task that can be awaited by the consumer.
+// That would give more control to the consumer and also allows the consumer to await the task to process any exceptions.
+// It does however complicate the usage a bit and may be overly complex.
+// As always, "it depends".
 
 internal sealed class WeaponsFileMonitor : IAsyncDisposable
 {
@@ -24,18 +31,27 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 	/// <summary>
 	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
-	/// for changes (using LastWriteTimeUtc) with an interval controlled by <paramref name="timer"/>.
-	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with included file contents.
-	/// Any read errors will caught and will not result in a change event. 
+	/// for changes (using LastWriteTimeUtc) with an poll interval set to <paramref name="period"/>.
+	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with deserialized content.
+	/// Any read errors are caught and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
-	public WeaponsFileMonitor(IFileSystem fileSystem, string pathToMonitor, IPeriodicTimer timer)
+	/// <param name="pathToMonitor">Full path to file to monitor for changes (cannot be empty).</param>
+	/// <param name="period">Poll rate (cannot be equal to or less than 0).</param>
+	public WeaponsFileMonitor(string pathToMonitor, TimeSpan period)
+		: this(pathToMonitor, new FileSystem(), new PeriodicTimer(period))
 	{
-		_fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
+	}
 
+	/// <summary>
+	/// Optional constructor, primarily used for testing.
+	/// </summary>
+	public WeaponsFileMonitor(string pathToMonitor, IFileSystem fileSystem, IPeriodicTimer timer)
+	{
 		if (string.IsNullOrWhiteSpace(pathToMonitor))
 			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
 
+		_fileSystem = fileSystem ?? throw new ArgumentNullException(nameof(fileSystem));
 		_timer = timer ?? throw new ArgumentNullException(nameof(timer));
 
 		_pathToMonitor = pathToMonitor;

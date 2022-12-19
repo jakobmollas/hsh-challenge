@@ -2,7 +2,7 @@
 
 internal static class WeaponsTestData
 {
-	public static string Json1 = @"
+	public const string Json1 = @"
 [
 	{
 		""Name"": ""Fenrir"",
@@ -17,7 +17,7 @@ internal static class WeaponsTestData
 ]
 ";
 
-	public static string Json2 = @"
+	public const string Json2 = @"
 [
 	{
 		""Name"": ""Constitutional Arms Liberty"",
@@ -32,13 +32,13 @@ internal static class WeaponsTestData
 ]
 ";
 
-	public static IEnumerable<Weapon> ExpectedWeapons1 = new List<Weapon>
+	public static readonly IEnumerable<Weapon> ExpectedWeapons1 = new List<Weapon>
 	{
 		new("Fenrir", TechType.Power, 6.9),
 		new("Genjiroh", TechType.Smart, 4.8)
 	};
 
-	public static IEnumerable<Weapon> ExpectedWeapons2 = new List<Weapon>
+	public static readonly IEnumerable<Weapon> ExpectedWeapons2 = new List<Weapon>
 	{
 		new("Constitutional Arms Liberty", TechType.Power, 3.75),
 		new("Tsunami Nekomata", TechType.Tech, 0.93)
