@@ -8,9 +8,8 @@ namespace WeaponsWatcher;
 // That would simplify the solution somewhat (no need to marshall calls to the UI thread, no need for separate threads) but it could also remove some separation of concerns.
 // I am also not sure how to schedule an update to not run immediately, but in x milliseconds or similar.
 
-// We could also design the class to not use IDisposable if that would be a better fit for the consumer
-// by taking a taking a cancellation token in the constructor (not recommended),
-// or by redesigning the class to have an explicit "run" method that takes a CancellationToken
+// We could also design the class to not use IDisposable if that would be a better fit for the consumer.
+// For example by redesigning the class to have a public "RunAsync" method that takes a CancellationToken
 // and returns a task that can be awaited by the consumer.
 // That would give more control to the consumer and also allows the consumer to await the task to process any exceptions.
 // It does however complicate the usage a bit and may be overly complex.
