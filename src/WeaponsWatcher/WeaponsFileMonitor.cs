@@ -24,17 +24,22 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	private readonly IFileSystem _fileSystem;
 	private readonly string _pathToMonitor;
 	private readonly IPeriodicTimer _timer;
-	private DateTime _lastWriteTime;
+	private DateTime? _lastWriteTime;
 
 	public event EventHandler<IEnumerable<Weapon>>? WeaponsUpdated;
 
 	/// <summary>
 	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
 	/// for changes (using LastWriteTimeUtc) with an poll interval set to <paramref name="period"/>.
+	/// A deleted file will result in a single event when a deletion is detected.
 	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with deserialized content.
 	/// Any read errors are caught and will not result in a change event. 
 	/// Dispose the instance to terminate the monitoring operation.
 	/// </summary>
+	/// <remarks>
+	/// Although there is nothing stopping multiple event subscribers,
+	/// this class is only tested and intended for a single subscriber.
+	/// </remarks>
 	/// <param name="pathToMonitor">Full path to file to monitor for changes (cannot be empty).</param>
 	/// <param name="period">Poll rate (cannot be equal to or less than 0).</param>
 	public WeaponsFileMonitor(string pathToMonitor, TimeSpan period)
@@ -108,12 +113,23 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	{
 		try
 		{
-			// No listeners or nothing to read? No point in working hard in that case.
+			// No listeners? No point in working hard in that case.
 			// By checking for subscribers we also handle an edge case where a (single) consumer creates a monitor
 			// that starts and processes a file BEFORE the consumer has time to subscribe to the change event,
 			// which would lead to a lost initial update.
-			if (WeaponsUpdated == null || !_fileSystem.File.Exists(_pathToMonitor))
+			if (WeaponsUpdated == null)
 				return;
+
+			if (!_fileSystem.File.Exists(_pathToMonitor))
+			{
+				// A file has been deleted, fire event once
+				if (_lastWriteTime == null)
+					return;
+				
+				_lastWriteTime = null;
+				WeaponsUpdated?.Invoke(this, Array.Empty<Weapon>());
+				return;
+			}
 
 			var writeTime = _fileSystem.File.GetLastWriteTimeUtc(_pathToMonitor);
 			if (writeTime == _lastWriteTime)
@@ -121,22 +137,30 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 			_lastWriteTime = writeTime;
 
-			var weapons = await ReadWeaponsListAsync(_fileSystem, _pathToMonitor, ct);
+			var weapons = await ReadWeaponsListSuccessfullyOrReturnEmptyAsync(_fileSystem, _pathToMonitor, ct);
 
 			WeaponsUpdated?.Invoke(this, weapons);
 		}
-		catch (Exception)
+		catch
 		{
 			// Ignore for now - in a real app we may want to log this
 			// and maybe show error information in the UI depending on what is expected.
 		}
 	}
 
-	private static async Task<IReadOnlyList<Weapon>> ReadWeaponsListAsync(IFileSystem fileSystem, string path, CancellationToken ct)
+	private static async Task<IReadOnlyList<Weapon>> ReadWeaponsListSuccessfullyOrReturnEmptyAsync(IFileSystem fileSystem, string path, CancellationToken ct)
 	{
-		await using var readStream = fileSystem.File.OpenRead(path);
-		var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
+		try
+		{
+			await using var readStream = fileSystem.File.OpenRead(path);
+			var weapons = await JsonSerializer.DeserializeAsync<List<Weapon>>(readStream, _jsonOptions, ct);
 
-		return weapons != null ? weapons : Array.Empty<Weapon>();
+			return weapons != null ? weapons : Array.Empty<Weapon>();
+		}
+		catch
+		{
+			// Again, in a real app this may be significant enough to handle differently and/or log.
+			return Array.Empty<Weapon>();
+		}
 	}
 }
