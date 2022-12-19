@@ -5,7 +5,12 @@ VisualStudioVersion = 17.3.32929.385
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeaponsWatcher", "src\WeaponsWatcher\WeaponsWatcher.csproj", "{E03FEFE8-E81B-4B9D-975E-CF8203487032}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WeaponsWatcher.Tests", "test\WeaponsWatcher.Tests\WeaponsWatcher.Tests.csproj", "{CA7B460B-9D1A-44D9-B204-1A65F6633E52}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeaponsWatcher.Tests", "test\WeaponsWatcher.Tests\WeaponsWatcher.Tests.csproj", "{CA7B460B-9D1A-44D9-B204-1A65F6633E52}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "_solutionItems", "_solutionItems", "{CA604E87-8250-44FF-A9B5-70A2670A35A2}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\ci.yml = .github\workflows\ci.yml
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
