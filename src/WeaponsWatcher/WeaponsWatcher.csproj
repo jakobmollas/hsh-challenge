@@ -3,17 +3,14 @@
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
 		<TargetFramework>net6.0-windows</TargetFramework>
-		<Nullable>enable</Nullable>
 		<UseWPF>true</UseWPF>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
 		<ApplicationIcon>app.ico</ApplicationIcon>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.1.1" />
-		<PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.1.1" />
+		<PackageReference Include="TestableIO.System.IO.Abstractions" Version="19.1.5" />
+		<PackageReference Include="TestableIO.System.IO.Abstractions.Wrappers" Version="19.1.5" />
 	</ItemGroup>
 
 	<ItemGroup>

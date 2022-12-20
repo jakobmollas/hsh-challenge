@@ -1,9 +1,6 @@
 ﻿using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
-using Moq;
 using WeaponsWatcher.Tests.TestSupport;
-using Xunit;
-using Xunit.Abstractions;
 
 namespace WeaponsWatcher.Tests;
 
@@ -218,7 +215,7 @@ public sealed class WeaponsViewModelTests : IDisposable
 		int eventsFired = 0;
 		var updatedWeapons = new List<Weapon>();
 		monitor.WeaponsUpdated += (_, weapons) => { updatedWeapons = weapons.ToList(); eventsFired++; };
-		
+
 		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
 		Assert.Equal(1, eventsFired);
 

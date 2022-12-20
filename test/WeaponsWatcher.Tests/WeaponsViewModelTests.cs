@@ -1,7 +1,4 @@
-﻿using KellermanSoftware.CompareNetObjects;
-using Xunit;
-
-namespace WeaponsWatcher.Tests;
+﻿namespace WeaponsWatcher.Tests;
 
 public class WeaponsFileMonitorTests
 {

@@ -1,6 +1,4 @@
-﻿using Xunit;
-
-namespace WeaponsWatcher.Tests;
+﻿namespace WeaponsWatcher.Tests;
 
 public class PeriodicTimerTests
 {
@@ -31,7 +29,7 @@ public class PeriodicTimerTests
 	[Fact]
 	public async Task WaitForNextTickAsync_Throws_On_Cancel()
 	{
-		// Arrange 
+		// Arrange
 		using var cts = new CancellationTokenSource();
 		cts.Cancel();
 
@@ -46,7 +44,7 @@ public class PeriodicTimerTests
 	{
 		// Just a sanity check, it is always hard to test time-dependent code.
 
-		// Arrange 
+		// Arrange
 		using var cts = new CancellationTokenSource();
 		var timer = new PeriodicTimer(TimeSpan.FromMilliseconds(10));
 

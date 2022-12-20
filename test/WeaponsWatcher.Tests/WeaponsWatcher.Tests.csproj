@@ -3,10 +3,7 @@
 	<PropertyGroup>
 		<TargetFramework>net6.0-windows</TargetFramework>
 		<Configurations>Debug;Release</Configurations>
-		<Nullable>enable</Nullable>
 		<IsPackable>false</IsPackable>
-		<TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-		<ImplicitUsings>enable</ImplicitUsings>
 		<EnableWindowsTargeting>true</EnableWindowsTargeting>
 	</PropertyGroup>
 
@@ -19,6 +16,10 @@
 		<PackageReference Include="xunit.runner.visualstudio" Version="2.4.5">
 			<PrivateAssets>all</PrivateAssets>
 		</PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Using Include="Xunit;Xunit.Abstractions;Xunit.Sdk;Moq;KellermanSoftware.CompareNetObjects" />
 	</ItemGroup>
 
 	<ItemGroup>

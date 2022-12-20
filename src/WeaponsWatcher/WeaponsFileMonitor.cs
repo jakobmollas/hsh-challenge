@@ -19,7 +19,7 @@ namespace WeaponsWatcher;
 /// Continuously monitors a specific file/path for for changes (using <see cref="IFile.GetLastWriteTimeUtc"/>).
 /// Each change will result in a change event, containing deserialized file contents, or empty data in case of missing file/unreadable content.
 /// A deleted file that was previously read will result in a single event (when the deletion is detected).
-/// Any IO-related errors are caught. 
+/// Any IO-related errors are caught.
 /// Dispose the instance to terminate the monitoring operation.
 /// </summary>
 /// <remarks>
@@ -133,7 +133,7 @@ public sealed class WeaponsFileMonitor : IAsyncDisposable
 				// A file has been deleted, fire event once
 				if (_lastWriteTime == null)
 					return;
-				
+
 				_lastWriteTime = null;
 				WeaponsUpdated?.Invoke(this, Array.Empty<Weapon>());
 				return;
