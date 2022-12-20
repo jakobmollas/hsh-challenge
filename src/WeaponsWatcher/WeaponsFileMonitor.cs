@@ -15,7 +15,18 @@ namespace WeaponsWatcher;
 // It does however complicate the usage a bit and may be overly complex.
 // As always, "it depends".
 
-internal sealed class WeaponsFileMonitor : IAsyncDisposable
+/// <summary>
+/// Continuously monitors a specific file/path for for changes (using <see cref="IFile.GetLastWriteTimeUtc"/>).
+/// Each change will result in a change event, containing deserialized file contents, or empty data in case of missing file/unreadable content.
+/// A deleted file that was previously read will result in a single event (when the deletion is detected).
+/// Any IO-related errors are caught. 
+/// Dispose the instance to terminate the monitoring operation.
+/// </summary>
+/// <remarks>
+/// Although there is nothing stopping multiple event subscribers,
+/// this class is only tested and intended for a single subscriber.
+/// </remarks>
+public sealed class WeaponsFileMonitor : IAsyncDisposable
 {
 	private static readonly JsonSerializerOptions _jsonOptions = new() { Converters = { new JsonStringEnumConverter() } };
 
@@ -30,16 +41,8 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 
 	/// <summary>
 	/// Create a new <see cref="WeaponsFileMonitor"/> that continuously monitors <paramref name="pathToMonitor"/>
-	/// for changes (using LastWriteTimeUtc) with an poll interval set to <paramref name="period"/>.
-	/// A deleted file will result in a single event when a deletion is detected.
-	/// When the file is modified, <see cref="WeaponsUpdated"/> will be fired with deserialized content.
-	/// Any read errors are caught and will not result in a change event. 
-	/// Dispose the instance to terminate the monitoring operation.
+	/// for changes with an poll interval set to <paramref name="period"/>.
 	/// </summary>
-	/// <remarks>
-	/// Although there is nothing stopping multiple event subscribers,
-	/// this class is only tested and intended for a single subscriber.
-	/// </remarks>
 	/// <param name="pathToMonitor">Full path to file to monitor for changes (cannot be empty).</param>
 	/// <param name="period">Poll rate (cannot be equal to or less than 0).</param>
 	public WeaponsFileMonitor(string pathToMonitor, TimeSpan period)
@@ -50,7 +53,7 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// <summary>
 	/// Optional constructor, primarily used for testing.
 	/// </summary>
-	public WeaponsFileMonitor(string pathToMonitor, IFileSystem fileSystem, IPeriodicTimer timer)
+	internal WeaponsFileMonitor(string pathToMonitor, IFileSystem fileSystem, IPeriodicTimer timer)
 	{
 		if (string.IsNullOrWhiteSpace(pathToMonitor))
 			throw new ArgumentException("Value cannot be null or whitespace.", nameof(pathToMonitor));
@@ -94,11 +97,14 @@ internal sealed class WeaponsFileMonitor : IAsyncDisposable
 		{
 			while (!ct.IsCancellationRequested)
 			{
-				// Disposing _timer or cancelling token _should_ not result in an OperationCanceledException being thrown
+				// Disposing _timer or cancelling token should _probably_ not result in an OperationCanceledException being thrown
 				// based on documentation but it is not super clear. Expect an exception in any case.
 				bool result = await _timer.WaitForNextTickAsync(ct);
 				if (!result)
+				{
+					// Timer has been disposed.
 					return;
+				}
 
 				await CheckForUpdatesAsync(ct);
 			}

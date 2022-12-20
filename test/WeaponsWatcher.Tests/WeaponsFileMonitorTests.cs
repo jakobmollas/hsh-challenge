@@ -35,7 +35,6 @@ public sealed class WeaponsViewModelTests : IDisposable
 		Assert.Throws<ArgumentOutOfRangeException>("period", () => new WeaponsFileMonitor(badPath, TimeSpan.Zero));
 
 		// Secondary ctor
-
 		Assert.Throws<ArgumentException>("pathToMonitor", () => new WeaponsFileMonitor(badPath, fileSystem, timer));
 		Assert.Throws<ArgumentNullException>("fileSystem", () => new WeaponsFileMonitor("test.json", null!, timer));
 		Assert.Throws<ArgumentNullException>("timer", () => new WeaponsFileMonitor("test.json", fileSystem, null!));
@@ -184,7 +183,6 @@ public sealed class WeaponsViewModelTests : IDisposable
 		int eventsFired = 0;
 		var updatedWeapons = new List<Weapon>();
 		monitor.WeaponsUpdated += (_, weapons) => { updatedWeapons = weapons.ToList(); eventsFired++; };
-
 		
 		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
 		Assert.Equal(1, eventsFired);

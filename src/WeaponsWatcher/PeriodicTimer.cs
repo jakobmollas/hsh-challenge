@@ -1,13 +1,13 @@
-﻿namespace WeaponsWatcher;
+﻿using SystemPeriodicTimer = System.Threading.PeriodicTimer;
+
+namespace WeaponsWatcher;
 
 internal sealed class PeriodicTimer : IPeriodicTimer
 {
-	private readonly System.Threading.PeriodicTimer _periodicTimer;
-
-	// Todo: Add basic tests
+	private readonly SystemPeriodicTimer _periodicTimer;
 
 	/// <summary>
-	/// Create a new timer based on <see cref="System.Threading.PeriodicTimer"/> with a poll interval set to <paramref name="period"/>.
+	/// Create a new timer based on <see cref="SystemPeriodicTimer"/> with a poll interval set to <paramref name="period"/>.
 	/// </summary>
 	/// <param name="period">Polling period, must be greater than 0.</param>
 	public PeriodicTimer(TimeSpan period)
@@ -15,7 +15,7 @@ internal sealed class PeriodicTimer : IPeriodicTimer
 		if (period <= TimeSpan.Zero)
 			throw new ArgumentOutOfRangeException(nameof(period), $"{nameof(period)} must be greater than 0.");
 
-		_periodicTimer = new System.Threading.PeriodicTimer(period);
+		_periodicTimer = new SystemPeriodicTimer(period);
 	}
 
 	public ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken)
