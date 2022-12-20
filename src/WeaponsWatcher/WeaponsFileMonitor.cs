@@ -36,6 +36,7 @@ public sealed class WeaponsFileMonitor : IAsyncDisposable
 	private readonly string _pathToMonitor;
 	private readonly IPeriodicTimer _timer;
 	private DateTime? _lastWriteTime;
+	private bool _disposed;
 
 	public event EventHandler<IEnumerable<Weapon>>? WeaponsUpdated;
 
@@ -75,19 +76,23 @@ public sealed class WeaponsFileMonitor : IAsyncDisposable
 	/// </remarks>
 	public async ValueTask DisposeAsync()
 	{
+		if (_disposed)
+			return;
+
 		try
 		{
 			_cts.Cancel();
 
 			// If the task faulted for some unexpected reason, this will ensure any exceptions are re-thrown.
 			// We do this to prevent any unexpected exceptions from being hidden.
-			await _monitorTask;
+			await _monitorTask.ConfigureAwait(false);
 		}
 		finally
 		{
 			// Ensure we clean up no matter what
 			_timer.Dispose();
 			_cts.Dispose();
+			_disposed = true;
 		}
 	}
 
@@ -99,12 +104,9 @@ public sealed class WeaponsFileMonitor : IAsyncDisposable
 			{
 				// Disposing _timer or cancelling token should _probably_ not result in an OperationCanceledException being thrown
 				// based on documentation but it is not super clear. Expect an exception in any case.
-				bool result = await _timer.WaitForNextTickAsync(ct);
-				if (!result)
-				{
-					// Timer has been disposed.
-					return;
-				}
+				// "False" is returned if the timer is disposed before cancelling the token, which we never do.
+				// Which means we do not care about the return value here.
+				await _timer.WaitForNextTickAsync(ct);
 
 				await CheckForUpdatesAsync(ct);
 			}

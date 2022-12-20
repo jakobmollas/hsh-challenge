@@ -6,6 +6,6 @@
 /// </summary>
 internal interface IPeriodicTimer : IDisposable
 {
-	/// <inheritdoc cref="System.Threading.PeriodicTimer"/>
+	/// <inheritdoc cref="System.Threading.PeriodicTimer.WaitForNextTickAsync"/>
 	ValueTask<bool> WaitForNextTickAsync(CancellationToken cancellationToken);
 }

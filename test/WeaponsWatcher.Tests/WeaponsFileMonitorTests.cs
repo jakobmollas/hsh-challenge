@@ -1,4 +1,5 @@
-﻿using System.IO.Abstractions.TestingHelpers;
+﻿using System.IO.Abstractions;
+using System.IO.Abstractions.TestingHelpers;
 using Moq;
 using WeaponsWatcher.Tests.TestSupport;
 using Xunit;
@@ -45,6 +46,40 @@ public sealed class WeaponsViewModelTests : IDisposable
 	{
 		await using var monitor = new WeaponsFileMonitor("test.json", TimeSpan.FromSeconds(1));
 		Assert.NotNull(monitor);
+	}
+
+	[Fact]
+	public async Task Dispose_Does_Not_Throw()
+	{
+		await using var monitor = new WeaponsFileMonitor("test.json", TimeSpan.FromHours(1));
+		Assert.NotNull(monitor);
+
+		// Allow some processing
+		await Task.Delay(1000);
+
+		// Dispose twice (actually three times since the test will do a dispose when going out of scope)
+		// to ensure we can handle that as well.
+		await monitor.DisposeAsync();
+		await monitor.DisposeAsync();
+	}
+
+	[Fact]
+	public async Task IO_Exception_Is_Handled()
+	{
+		// Arrange
+		var fileSystem = new Mock<IFileSystem>();
+		fileSystem.Setup(n => n.File).Throws(new InvalidOperationException("Oops"));
+
+		await using var monitor = new WeaponsFileMonitor(@"c:\weapons.json", fileSystem.Object, _timer);
+
+		int eventsFired = 0;
+		monitor.WeaponsUpdated += (_, _) => { eventsFired++; };
+
+		await _timer.ReleaseNextTickAndWaitForFullTickProcessingAsync(_cts.Token);
+
+		// Assert
+		Assert.Equal(0, eventsFired);
+		fileSystem.VerifyAll();
 	}
 
 	[Fact]
