@@ -55,7 +55,7 @@ public sealed class WeaponsViewModelTests : IDisposable
 		Assert.NotNull(monitor);
 
 		// Allow some processing
-		await Task.Delay(1000);
+		await Task.Delay(10);
 
 		// Dispose twice (actually three times since the test will do a dispose when going out of scope)
 		// to ensure we can handle that as well.
